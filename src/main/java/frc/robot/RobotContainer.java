@@ -9,6 +9,7 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -26,7 +27,6 @@ import frc.robot.TyRap25Constants.*;
 import frc.robot.Subsystems.Drivetrain;
 import frc.robot.Subsystems.Limelight;
 import frc.robot.Subsystems.RangeSensor;
-import frc.robot.Commands.CenterOnTag;
 import frc.robot.Commands.Drive;
 import frc.robot.Commands.DriveDistance;
 import frc.robot.Commands.DriveOffset;
@@ -47,15 +47,16 @@ public class RobotContainer {
     private final Pigeon2 m_gyro = new Pigeon2(ID.kGyro);
     private final Drivetrain m_swerve;
     private final Limelight m_Limelight;
-    //private final RangeSensor m_range;
+    private final RangeSensor m_range;
     private final SendableChooser<String> autoChooser;
-    //private final RobotConstants constants = RobotConstants.ROBOT_CONSTANTS;
     
     private ShuffleboardTab m_competitionTab = Shuffleboard.getTab("Competition Tab");
     private GenericEntry m_xVelEntry = m_competitionTab.add("Chassis X Vel", 0).getEntry();
     private GenericEntry m_yVelEntry = m_competitionTab.add("Chassis Y Vel", 0).getEntry();
     private GenericEntry m_gyroAngle = m_competitionTab.add("Gyro Angle", 0).getEntry();
     private GenericEntry m_currentRange = m_competitionTab.add("Range", 0).getEntry();
+    private GenericEntry m_commandedXVel = m_competitionTab.add("CommandedVX", 0).getEntry();
+    private GenericEntry m_commandedYVel = m_competitionTab.add("CommandedVY", 0).getEntry();
     private StructArrayPublisher<SwerveModuleState> publisher = NetworkTableInstance.getDefault()
             .getStructArrayTopic("MyStates", SwerveModuleState.struct).publish();
     private SwerveModuleSB[] mSwerveModuleTelem;
@@ -79,7 +80,7 @@ public class RobotContainer {
         this.m_Limelight = new Limelight();
         this.m_Limelight.setLimelightPipeline(2);
 
-        //this.m_range = new RangeSensor(0);
+        this.m_range = new RangeSensor(0);
 
         // Xbox controllers return negative values when we push forward.
         this.m_driveCommand = new Drive(m_swerve);
@@ -119,11 +120,11 @@ public class RobotContainer {
 
         Controller.kDriveController.leftBumper().onTrue(m_swerve.setDriveMultCommand(0.5))
                 .onFalse(m_swerve.setDriveMultCommand(1));
-        //Controller.kDriveController.a().onTrue(new DriveOffset(m_swerve, m_Limelight, false));
+        Controller.kDriveController.a().onTrue(new DriveOffset(m_swerve, m_Limelight, false));
         Controller.kDriveController.b().onTrue(new DriveDistance(m_swerve));
-        /*Controller.kDriveController.x().onTrue(new DriveDistance(m_swerve,
+        Controller.kDriveController.x().onTrue(new DriveDistance(m_swerve,
                 () -> m_Limelight.getzDistanceMeters() - 0.1, 0));
-        Controller.kDriveController.leftBumper().onTrue(new DriveRange(m_swerve, () -> 0.5, () -> m_range.getRange(), 90, 0.2)); */
+        Controller.kDriveController.leftBumper().onTrue(new DriveRange(m_swerve, () -> 0.5, () -> m_range.getRange(), 90, 0.2));
     }
 
     public Drivetrain getDrivetrain() {
@@ -174,6 +175,9 @@ public class RobotContainer {
                 m_swerve.getFrontLeftSwerveModule().getState(),
                 m_swerve.getFrontRightSwerveModule().getState() };
         publisher.set(states);
-        //m_currentRange.setDouble(m_range.getRange());
+        m_currentRange.setDouble(m_range.getRange());
+        ChassisSpeeds commandedSpeeds = m_swerve.getCommandeChassisSpeeds();
+        m_commandedXVel.setDouble(commandedSpeeds.vxMetersPerSecond);
+        m_commandedYVel.setDouble(commandedSpeeds.vyMetersPerSecond);
     }
 }

@@ -26,6 +26,9 @@ public class TyRap25Constants {
         
         // Pigeon
         public static final int kGyro = 2;
+
+        // Cameras
+        public static final String kFrontLimelightName = "limelight-c";
     }
 
     public static class MechID {
@@ -101,5 +104,8 @@ public class TyRap25Constants {
         public static final double kFrontRightOffset = 3.09;
         public static final double kBackLeftOffset = 2.11;
         public static final double kBackRightOffset = 0.78;
+
+        // Camera Positioning
+        public static final double cameraOffsetForwardM = 0.19;
     }
 }
