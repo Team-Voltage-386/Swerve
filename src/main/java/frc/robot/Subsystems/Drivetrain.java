@@ -4,8 +4,6 @@
 
 package frc.robot.Subsystems;
 
-import java.io.File;
-import java.lang.reflect.Field;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -114,6 +112,7 @@ public class Drivetrain extends SubsystemBase {
             m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
 
     protected final SwerveDrivePoseEstimator m_odometry;
+    protected int counter = 0;
 
     protected ChassisSpeeds m_chassisSpeeds = new ChassisSpeeds();
     protected ChassisSpeeds commandedChassisSpeeds = new ChassisSpeeds();
@@ -138,7 +137,7 @@ public class Drivetrain extends SubsystemBase {
                         m_backLeft.getPosition(),
                         m_backRight.getPosition()
                 },
-                new Pose2d(0.0, 3.0, new Rotation2d(0.0)));
+                new Pose2d(1.0, 2.0, new Rotation2d(0.0)));
 
         // Load the RobotConfig from the PathPlanner GUI settings
         RobotConfig ppConfig;
@@ -379,23 +378,26 @@ public class Drivetrain extends SubsystemBase {
         m_odometry.update(
                 rotationYaw,
                 getModulePositions());
-        LimelightHelpers.SetRobotOrientation("limelight-c", rotationYaw.getDegrees(), 0, 0, 0, 0, 0);
-        LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-c");
-        boolean doRejectUpdate = false;
-        if(Math.abs(m_gyro.getAngularVelocityZWorld().getValueAsDouble()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
-        {
-            doRejectUpdate = true;
-        }
-        if(mt2.tagCount == 0)
-        {
-            doRejectUpdate = true;
-        }
-        if(!doRejectUpdate)
-        {
-            m_odometry.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
-            m_odometry.addVisionMeasurement(
-                mt2.pose,
-                mt2.timestampSeconds);
+        counter++;
+        if (counter % 10 == 0) {
+            LimelightHelpers.SetRobotOrientation("limelight-c", rotationYaw.getDegrees(), 0, 0, 0, 0, 0);
+            LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-c");
+            boolean doRejectUpdate = false;
+            if(Math.abs(m_gyro.getAngularVelocityZWorld().getValueAsDouble()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+            {
+                doRejectUpdate = true;
+            }
+            if(mt2.tagCount == 0)
+            {
+                doRejectUpdate = true;
+            }
+            if(!doRejectUpdate)
+            {
+                m_odometry.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
+                m_odometry.addVisionMeasurement(
+                    mt2.pose,
+                    mt2.timestampSeconds);
+            }
         }
 
         // getting velocity vectors from each module

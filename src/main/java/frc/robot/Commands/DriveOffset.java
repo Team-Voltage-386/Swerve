@@ -169,7 +169,7 @@ public class DriveOffset extends Command {
         
         // Calculate angle error
         angleError = desiredPose.getRotation().getRadians() - currentPose.getRotation().getRadians();
-        if (Math.abs(angleError) > LimelightConstants.driveOffsetAngleError) {
+        if (Math.abs(angleError) > LimelightConstants.driveOffsetAngleErrorRadians) {
                 if (remainingTime > 0) {
                         // Calculate angular speed
                         calcVel.omegaRadiansPerSecond = angleError / remainingTime;
@@ -194,7 +194,7 @@ public class DriveOffset extends Command {
 
     @Override
     public boolean isFinished() {
-        if (rangeM <= threshold && Math.abs(angleError) <= LimelightConstants.driveOffsetAngleError) {
+        if (rangeM <= threshold && Math.abs(angleError) <= LimelightConstants.driveOffsetAngleErrorRadians) {
             return true;
         }
         return false;
