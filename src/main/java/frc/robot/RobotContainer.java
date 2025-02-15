@@ -11,6 +11,7 @@ import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
+import edu.wpi.first.cscore.VideoSource.ConnectionStrategy;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -66,6 +67,10 @@ public class RobotContainer {
     private GenericEntry m_currentRange = m_competitionTab.add("Range", 0).getEntry();
     private GenericEntry m_commandedXVel = m_competitionTab.add("CommandedVX", 0).getEntry();
     private GenericEntry m_commandedYVel = m_competitionTab.add("CommandedVY", 0).getEntry();
+    protected GenericEntry m_driveP = m_competitionTab.add("Drive P Val", DriveTrainConstants.drivePID[0]).getEntry();
+    protected GenericEntry m_driveFFStatic = m_competitionTab.add("Drive FF Static", DriveTrainConstants.driveFeedForward[0]).getEntry();
+    protected GenericEntry m_driveFFVel = m_competitionTab.add("Drive FF Vel", DriveTrainConstants.driveFeedForward[0]).getEntry();
+    protected GenericEntry m_driveAccel = m_competitionTab.add("Drive FF Accel", 0.0).getEntry();
     private StructArrayPublisher<SwerveModuleState> publisher = NetworkTableInstance.getDefault()
             .getStructArrayTopic("MyStates", SwerveModuleState.struct).publish();
     private SwerveModuleSB[] mSwerveModuleTelem;
@@ -149,7 +154,7 @@ public class RobotContainer {
         Controller.kDriveController.b().onTrue(new DriveDistance(m_swerve));
         Controller.kDriveController.x().onTrue(new DriveDistance(m_swerve,
                 () -> m_Limelight.getzDistanceMeters() - 0.1, 0));
-        Controller.kDriveController.leftBumper().onTrue(new DriveRange(m_swerve, () -> 0.5, () -> m_range.getRange(), 90, 0.2));
+        Controller.kDriveController.leftBumper().onTrue(new DriveRange(m_swerve, () -> 0.5, () -> m_range.getRange(), 90, 0.2));  
     }
 
     public Drivetrain getDrivetrain() {
@@ -185,6 +190,30 @@ public class RobotContainer {
 
     public void clearDefaultCommand() {
         this.m_swerve.removeDefaultCommand();
+    }
+
+    public void setPIDConstants() {
+        // Configure the drive train tuning constants from the dashboard
+        double driveP = m_driveP.getDouble(0.0);
+        double driveFFStatic = m_driveFFStatic.getDouble(0.0);
+        double driveFFVel = m_driveFFVel.getDouble(0.0);
+        double driveFFAccel = m_driveAccel.getDouble(0.0);
+        m_swerve.getFrontLeftSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getFrontLeftSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getFrontLeftSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getFrontLeftSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
+        m_swerve.getFrontRightSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getFrontRightSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getFrontRightSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getFrontRightSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
+        m_swerve.getBackLeftSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getBackLeftSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getBackLeftSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getBackLeftSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
+        m_swerve.getBackRightSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getBackRightSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getBackRightSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getBackRightSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
     }
 
     public void reportTelemetry() {
