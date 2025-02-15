@@ -29,19 +29,21 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 //import frc.robot.TyRap24Constants.*;
-import frc.robot.SparkJrConstants.*;
+import frc.robot.SparkJrConstants.Controller;
+import frc.robot.SparkJrConstants.ID;
+import frc.robot.Commands.Drive;
+import frc.robot.Commands.DriveDistance;
+import frc.robot.Commands.DriveFixedVelocity;
+import frc.robot.Commands.DriveOffset;
+import frc.robot.Commands.DriveRange;
+import frc.robot.Commands.ResetOdoCommand;
+import frc.robot.Commands.StopDrive;
 import frc.robot.Subsystems.Drivetrain;
 import frc.robot.Subsystems.Limelight;
 import frc.robot.Subsystems.RangeSensor;
 import frc.sim.SimDrivetrain;
 import frc.sim.SimLimelight;
 import frc.sim.SimTarget;
-import frc.robot.Commands.Drive;
-import frc.robot.Commands.DriveDistance;
-import frc.robot.Commands.DriveOffset;
-import frc.robot.Commands.DriveRange;
-import frc.robot.Commands.ResetOdoCommand;
-import frc.robot.Commands.StopDrive;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -66,6 +68,7 @@ public class RobotContainer {
     private GenericEntry m_currentRange = m_competitionTab.add("Range", 0).getEntry();
     private GenericEntry m_commandedXVel = m_competitionTab.add("CommandedVX", 0).getEntry();
     private GenericEntry m_commandedYVel = m_competitionTab.add("CommandedVY", 0).getEntry();
+    private GenericEntry m_fixedSpeed = m_competitionTab.add("Fixed Speed", 0).getEntry();
     private StructArrayPublisher<SwerveModuleState> publisher = NetworkTableInstance.getDefault()
             .getStructArrayTopic("MyStates", SwerveModuleState.struct).publish();
     private SwerveModuleSB[] mSwerveModuleTelem;
@@ -150,6 +153,10 @@ public class RobotContainer {
         Controller.kDriveController.x().onTrue(new DriveDistance(m_swerve,
                 () -> m_Limelight.getzDistanceMeters() - 0.1, 0));
         Controller.kDriveController.leftBumper().onTrue(new DriveRange(m_swerve, () -> 0.5, () -> m_range.getRange(), 90, 0.2));
+        Controller.kDriveController.povUp().whileTrue(new DriveFixedVelocity(m_swerve, 0, () -> m_fixedSpeed.getDouble(0.5)));
+        Controller.kDriveController.povRight().whileTrue(new DriveFixedVelocity(m_swerve, 90, () -> m_fixedSpeed.getDouble(0.5)));
+        Controller.kDriveController.povDown().whileTrue(new DriveFixedVelocity(m_swerve, 180, () -> m_fixedSpeed.getDouble(0.5)));
+        Controller.kDriveController.povLeft().whileTrue(new DriveFixedVelocity(m_swerve, 270, () -> m_fixedSpeed.getDouble(0.5)));
     }
 
     public Drivetrain getDrivetrain() {
