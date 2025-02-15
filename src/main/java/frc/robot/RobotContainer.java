@@ -4,19 +4,26 @@
 
 package frc.robot;
 
+import java.util.Vector;
+
 import com.ctre.phoenix6.configs.MountPoseConfigs;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
+import edu.wpi.first.units.Units;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -27,6 +34,9 @@ import frc.robot.TyRap25Constants.*;
 import frc.robot.Subsystems.Drivetrain;
 import frc.robot.Subsystems.Limelight;
 import frc.robot.Subsystems.RangeSensor;
+import frc.sim.SimDrivetrain;
+import frc.sim.SimLimelight;
+import frc.sim.SimTarget;
 import frc.robot.Commands.Drive;
 import frc.robot.Commands.DriveDistance;
 import frc.robot.Commands.DriveOffset;
@@ -68,7 +78,14 @@ public class RobotContainer {
      */
     public RobotContainer() {
         this.m_gyro.getConfigurator().apply(new MountPoseConfigs().withMountPoseYaw(-90));
-        this.m_swerve = new Drivetrain(m_gyro);
+        if (RobotBase.isReal()) {
+            this.m_swerve = new Drivetrain(m_gyro);
+        } else {
+            this.m_swerve = new SimDrivetrain();
+            Pose3d startPose = new Pose3d(
+                1.0, 1.0, 0.0, new Rotation3d(0.0, 0.0, Math.toRadians(0.0)));
+            ((SimDrivetrain)m_swerve).setSimPose(startPose);
+        }
 
         SwerveModuleSB[] swerveModuleTelem = {
                 new SwerveModuleSB("FR", m_swerve.getFrontRightSwerveModule(), m_competitionTab),
@@ -77,7 +94,16 @@ public class RobotContainer {
                 new SwerveModuleSB("BL", m_swerve.getBackLeftSwerveModule(), m_competitionTab) };
         mSwerveModuleTelem = swerveModuleTelem;
 
-        this.m_Limelight = new Limelight();
+        if (RobotBase.isReal()) {
+            this.m_Limelight = new Limelight();
+        } else {
+            Vector<SimTarget> targets = new Vector<SimTarget>();
+            // Tag 18 coordinates
+            SimTarget target = new SimTarget((float) Units.Meters.convertFrom(144, Units.Inches),
+                (float) Units.Meters.convertFrom(158.5, Units.Inches), 0.0f);
+            targets.add(target);    
+            this.m_Limelight = new SimLimelight((SimDrivetrain)this.m_swerve, targets, true);
+        }
         this.m_Limelight.setLimelightPipeline(2);
 
         this.m_range = new RangeSensor(0);
@@ -179,5 +205,6 @@ public class RobotContainer {
         ChassisSpeeds commandedSpeeds = m_swerve.getCommandeChassisSpeeds();
         m_commandedXVel.setDouble(commandedSpeeds.vxMetersPerSecond);
         m_commandedYVel.setDouble(commandedSpeeds.vyMetersPerSecond);
+        SmartDashboard.putData("Field", m_swerve.getField2d());
     }
 }
