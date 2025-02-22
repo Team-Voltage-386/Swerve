@@ -4,18 +4,27 @@
 
 package frc.robot;
 
+import java.util.Vector;
+
 import com.ctre.phoenix6.configs.MountPoseConfigs;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
+import edu.wpi.first.cscore.VideoSource.ConnectionStrategy;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StructArrayPublisher;
+import edu.wpi.first.units.Units;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -24,17 +33,21 @@ import frc.robot.Constants.ElevatorConstants;
 //import frc.robot.TyRap24Constants.*;
 import frc.robot.SparkJrConstants.Controller;
 import frc.robot.SparkJrConstants.ID;
+import frc.robot.SparkJrConstants.DriveTrainConstants;
 import frc.robot.Commands.Drive;
 import frc.robot.Commands.DriveDistance;
+import frc.robot.Commands.DriveFixedVelocity;
 import frc.robot.Commands.DriveLeftOrRight;
 import frc.robot.Commands.DriveOffset;
 import frc.robot.Commands.DriveRange;
 import frc.robot.Commands.ResetOdoCommand;
 import frc.robot.Commands.StopDrive;
 import frc.robot.Subsystems.Drivetrain;
-import frc.robot.Subsystems.Elevator;
 import frc.robot.Subsystems.Limelight;
 import frc.robot.Subsystems.RangeSensor;
+import frc.sim.SimDrivetrain;
+import frc.sim.SimLimelight;
+import frc.sim.SimTarget;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -51,13 +64,20 @@ public class RobotContainer {
     private final Limelight m_Limelight;
     private final RangeSensor m_range;
     private final SendableChooser<String> autoChooser;
-    private final Elevator m_elevator;
+    //private final Elevator m_elevator;
 
     private ShuffleboardTab m_competitionTab = Shuffleboard.getTab("Competition Tab");
     private GenericEntry m_xVelEntry = m_competitionTab.add("Chassis X Vel", 0).getEntry();
     private GenericEntry m_yVelEntry = m_competitionTab.add("Chassis Y Vel", 0).getEntry();
     private GenericEntry m_gyroAngle = m_competitionTab.add("Gyro Angle", 0).getEntry();
     private GenericEntry m_currentRange = m_competitionTab.add("Range", 0).getEntry();
+    private GenericEntry m_commandedXVel = m_competitionTab.add("CommandedVX", 0).getEntry();
+    private GenericEntry m_commandedYVel = m_competitionTab.add("CommandedVY", 0).getEntry();
+    protected GenericEntry m_driveP = m_competitionTab.add("Drive P Val", DriveTrainConstants.drivePID[0]).getEntry();
+    protected GenericEntry m_driveFFStatic = m_competitionTab.add("Drive FF Static", DriveTrainConstants.driveFeedForward[0]).getEntry();
+    protected GenericEntry m_driveFFVel = m_competitionTab.add("Drive FF Vel", DriveTrainConstants.driveFeedForward[1]).getEntry();
+    protected GenericEntry m_driveAccel = m_competitionTab.add("Drive FF Accel", 0.0).getEntry();
+    private GenericEntry m_fixedSpeed = m_competitionTab.add("Fixed Speed", 0).getEntry();
     private StructArrayPublisher<SwerveModuleState> publisher = NetworkTableInstance.getDefault()
             .getStructArrayTopic("MyStates", SwerveModuleState.struct).publish();
     private SwerveModuleSB[] mSwerveModuleTelem;
@@ -69,8 +89,14 @@ public class RobotContainer {
      */
     public RobotContainer() {
         this.m_gyro.getConfigurator().apply(new MountPoseConfigs().withMountPoseYaw(-90));
-        this.m_swerve = new Drivetrain(m_gyro);
-        this.m_elevator = new Elevator();
+        if (RobotBase.isReal()) {
+            this.m_swerve = new Drivetrain(m_gyro);
+        } else {
+            this.m_swerve = new SimDrivetrain();
+            Pose3d startPose = new Pose3d(
+                1.0, 1.0, 0.0, new Rotation3d(0.0, 0.0, Math.toRadians(0.0)));
+            ((SimDrivetrain)m_swerve).setSimPose(startPose);
+        }
 
         SwerveModuleSB[] swerveModuleTelem = {
                 new SwerveModuleSB("FR", m_swerve.getFrontRightSwerveModule(), m_competitionTab),
@@ -79,7 +105,16 @@ public class RobotContainer {
                 new SwerveModuleSB("BL", m_swerve.getBackLeftSwerveModule(), m_competitionTab) };
         mSwerveModuleTelem = swerveModuleTelem;
 
-        this.m_Limelight = new Limelight();
+        if (RobotBase.isReal()) {
+            this.m_Limelight = new Limelight();
+        } else {
+            Vector<SimTarget> targets = new Vector<SimTarget>();
+            // Tag 18 coordinates
+            SimTarget target = new SimTarget((float) Units.Meters.convertFrom(144, Units.Inches),
+                (float) Units.Meters.convertFrom(158.5, Units.Inches), 0.0f);
+            targets.add(target);    
+            this.m_Limelight = new SimLimelight((SimDrivetrain)this.m_swerve, targets, true);
+        }
         this.m_Limelight.setLimelightPipeline(2);
 
         this.m_range = new RangeSensor(0);
@@ -127,8 +162,8 @@ public class RobotContainer {
         Controller.kDriveController.x().onTrue(new DriveDistance(m_swerve,
                 () -> m_Limelight.getzDistanceMeters() - 0.1, 0));
         Controller.kDriveController.leftBumper().onTrue(new DriveRange(m_swerve, () -> 0.5, () -> m_range.getRange(), 90, 0.2));
-        //Controller.kDriveController.y().onTrue(m_elevator.reachGoal(ElevatorConstants.HEIGHT_STAGE[1]));
-        //Controller.kDriveController.y().onFalse(m_elevator.reachGoal(ElevatorConstants.HEIGHT_STAGE[0]));
+        Controller.kDriveController.povUp().whileTrue(new DriveFixedVelocity(m_swerve, 0, () -> m_fixedSpeed.getDouble(0.5)));
+        Controller.kDriveController.povDown().whileTrue(new DriveFixedVelocity(m_swerve, 180, () -> m_fixedSpeed.getDouble(0.5)));
         Controller.kDriveController.povLeft().onTrue(new DriveLeftOrRight(m_swerve, m_Limelight, true));
         Controller.kDriveController.povRight().onTrue(new DriveLeftOrRight(m_swerve, m_Limelight, false));
     }
@@ -168,6 +203,30 @@ public class RobotContainer {
         this.m_swerve.removeDefaultCommand();
     }
 
+    public void setPIDConstants() {
+        // Configure the drive train tuning constants from the dashboard
+        double driveP = m_driveP.getDouble(0.0);
+        double driveFFStatic = m_driveFFStatic.getDouble(0.0);
+        double driveFFVel = m_driveFFVel.getDouble(0.0);
+        double driveFFAccel = m_driveAccel.getDouble(0.0);
+        m_swerve.getFrontLeftSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getFrontLeftSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getFrontLeftSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getFrontLeftSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
+        m_swerve.getFrontRightSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getFrontRightSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getFrontRightSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getFrontRightSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
+        m_swerve.getBackLeftSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getBackLeftSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getBackLeftSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getBackLeftSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
+        m_swerve.getBackRightSwerveModule().getDrivePidController().setP(driveP);
+        m_swerve.getBackRightSwerveModule().getDriveFeedForward().setKs(driveFFStatic);
+        m_swerve.getBackRightSwerveModule().getDriveFeedForward().setKv(driveFFVel);
+        m_swerve.getBackRightSwerveModule().getDriveFeedForward().setKa(driveFFAccel);
+    }
+
     public void reportTelemetry() {
         m_xVelEntry.setDouble(m_swerve.getChassisSpeeds().vxMetersPerSecond);
         m_yVelEntry.setDouble(m_swerve.getChassisSpeeds().vyMetersPerSecond);
@@ -182,5 +241,9 @@ public class RobotContainer {
                 m_swerve.getFrontRightSwerveModule().getState() };
         publisher.set(states);
         m_currentRange.setDouble(m_range.getRange());
+        ChassisSpeeds commandedSpeeds = m_swerve.getCommandeChassisSpeeds();
+        m_commandedXVel.setDouble(commandedSpeeds.vxMetersPerSecond);
+        m_commandedYVel.setDouble(commandedSpeeds.vyMetersPerSecond);
+        SmartDashboard.putData("Field", m_swerve.getField2d());
     }
 }

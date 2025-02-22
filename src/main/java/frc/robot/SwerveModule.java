@@ -266,7 +266,7 @@ public class SwerveModule {
 
         final double driveFeedforward = m_driveFeedforward.calculate(state.speedMetersPerSecond);
 
-        if (desiredState.speedMetersPerSecond < 0.1) {
+        if (desiredState.speedMetersPerSecond < 0.01) {
             m_driveMotor.setVoltage(0);
         } else {
             m_driveMotor.setVoltage(driveOutput + driveFeedforward);
@@ -274,5 +274,13 @@ public class SwerveModule {
 
         this.goToPosition(state.angle.getRadians());
         m_desiredState = state;
+    }
+
+    public PIDController getDrivePidController() {
+        return m_drivePIDController;
+    }
+
+    public SimpleMotorFeedforward getDriveFeedForward() {
+        return m_driveFeedforward;
     }
 }

@@ -33,66 +33,6 @@ public class Constants {
         public static final double kRightJoyStickDeadband = 0.04;
     }
 
-    public static class DriveTrainConstants {
-        public static final double kDistanceMiddleToFrontMotor = 0.314325;
-        public static final double kDistanceMiddleToSideMotor = 0.314325;
-        public static final double kDriveBaseRadius = Math.sqrt( // distance from the middle to the furthest wheel
-                kDistanceMiddleToFrontMotor * kDistanceMiddleToFrontMotor +
-                        kDistanceMiddleToSideMotor * kDistanceMiddleToSideMotor);
-
-        public static final int kXForward = 1;
-        public static final int kXBackward = -1;
-        public static final int kYLeft = 1;
-        public static final int kYRight = -1;
-
-        // ITS TUNED. NO TOUCH!
-        public static final double[] turnPID = { 1.5, 0.2, 0.0 };
-        public static final double[] drivePID = { 3, 0.1, 0.0 };
-        public static final double[] turnFeedForward = { 0.0, 0.3 };
-        public static final double[] driveFeedForward = { 0.0, 2.675 };
-
-        public static final boolean kInvertTurn = true;
-        public static final double kMaxPossibleSpeed = 5.0; // meters per second
-    };
-
-    public static final class Modules {
-        public static final double kWheelDiameterMeters = Units.inchesToMeters(4);
-        public static final double kDriveMotorGearRatio = 1 / 6.75;
-        public static final double kDriveEncoderRot2Meter = kDriveMotorGearRatio * Math.PI * kWheelDiameterMeters;
-        public static final double kDriveEncoderRPM2MeterPerSec = kDriveEncoderRot2Meter / 60;
-    }
-
-    public static class Controller {
-        public static final int kDriveControllerID = 1;
-        public static final int kManipControllerID = 0;
-
-        /**
-         * Rate limiters make joystick inputs more gentle; 1/3 sec from 0 to 1.
-         */
-        public static final double kRateLimitXSpeed = 100.0;
-        public static final double kRateLimitYSpeed = 100.0;
-        public static final double kRateLimitRot = 70.0;
-        public static final double kMaxNecessarySpeed = DriveTrainConstants.kMaxPossibleSpeed * 0.8;
-
-        public static final CommandXboxController kDriveController = new CommandXboxController(kDriveControllerID);
-        public static final CommandXboxController kManipulatorController = new CommandXboxController(
-                kManipControllerID);
-    }
-
-    public static class Offsets {
-        // Ensure that the encoder offsets are between -Pi & Pi
-        /**
-         * Encoder offsets. These can be obtained by straightening
-         * all wheels in the forward position and reading the encoder values
-         * from the dashboard by uncommenting the lines in Robot.java
-         * disabledPeriodic.
-         */
-        public static final double kFrontLeftOffset = 2.79;
-        public static final double kFrontRightOffset = 2.106;
-        public static final double kBackLeftOffset = 1.10;
-        public static final double kBackRightOffset = -0.08;
-    }
-
     public static class LimelightConstants {
         // For CenterOnTag
         public static final double minXVelocity = 0.1;
@@ -117,6 +57,15 @@ public class Constants {
         public static final double offset = 0.0;
         public static final double proportion = 2;
         public static final double threshold = .02;
+        // For DriveOffset
+        public static final double driveOffsetXOffset = 0.5;
+        public static final double driveOffsetYOffset = 0.3;
+        public static final double driveOffsetMaxAccMSS = 1.0;
+        public static final double driveOffsetMaxDccMSS = 3;
+        public static final double driveOffsetMinVel = 0.05;
+        public static final double driveOffsetMaxVel = 1.5;
+        public static final double driveOffsetAngleErrorRadians = 0.015;
+        public static final double driveOffsetRangeMThreshold = 0.02;
         // Camera Positioning
         public static final double cameraOffsetForwardM = 0.19;
 

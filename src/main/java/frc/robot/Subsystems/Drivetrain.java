@@ -4,8 +4,6 @@
 
 package frc.robot.Subsystems;
 
-import java.io.File;
-import java.lang.reflect.Field;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,12 +15,13 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.hal.AllianceStationID;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
@@ -36,6 +35,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.LimelightHelpers;
 //import frc.robot.TyRap24Constants.*;
 import frc.robot.SparkJrConstants.*;
 import frc.robot.SwerveModule;
@@ -111,9 +111,11 @@ public class Drivetrain extends SubsystemBase {
     protected final SwerveDriveKinematics m_kinematics = new SwerveDriveKinematics(
             m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
 
-    protected final SwerveDriveOdometry m_odometry;
+    protected final SwerveDrivePoseEstimator m_odometry;
+    protected int counter = 0;
 
     protected ChassisSpeeds m_chassisSpeeds = new ChassisSpeeds();
+    protected ChassisSpeeds commandedChassisSpeeds = new ChassisSpeeds();
 
     protected ExecutorService executorService = Executors.newFixedThreadPool(4);
 
@@ -126,7 +128,7 @@ public class Drivetrain extends SubsystemBase {
         this.resetGyro();
         m_driveTab.add("field", field);
 
-        m_odometry = new SwerveDriveOdometry(
+        m_odometry = new SwerveDrivePoseEstimator(
                 m_kinematics,
                 getGyroYawRotation2d(),
                 new SwerveModulePosition[] {
@@ -134,7 +136,8 @@ public class Drivetrain extends SubsystemBase {
                         m_frontRight.getPosition(),
                         m_backLeft.getPosition(),
                         m_backRight.getPosition()
-                });
+                },
+                new Pose2d(1.0, 2.0, new Rotation2d(0.0)));
 
         // Load the RobotConfig from the PathPlanner GUI settings
         RobotConfig ppConfig;
@@ -273,6 +276,10 @@ public class Drivetrain extends SubsystemBase {
         return Rotation2d.fromDegrees(m_gyro.getYaw().getValueAsDouble());
     }
 
+    public ChassisSpeeds getCommandeChassisSpeeds() {
+        return commandedChassisSpeeds;
+    }
+
     protected double driveMultiplier = 1;
 
     public void setDriveMult(double mult) {
@@ -337,10 +344,14 @@ public class Drivetrain extends SubsystemBase {
         } catch (InterruptedException e) {
             // Pass
         }
+
+       commandedChassisSpeeds = m_kinematics.toChassisSpeeds(
+        swerveModuleStates[0], swerveModuleStates[1], swerveModuleStates[2], swerveModuleStates[3]);
+
     }
 
     public Pose2d getRoboPose2d() {
-        return m_odometry.getPoseMeters();
+        return m_odometry.getEstimatedPosition();
     }
 
     public void stopDriving() {
@@ -362,9 +373,32 @@ public class Drivetrain extends SubsystemBase {
 
     /** Updates the field relative position of the robot. */
     public void updateOdometry() {
+
+        Rotation2d rotationYaw = getGyroYawRotation2d();
         m_odometry.update(
-                getGyroYawRotation2d(),
+                rotationYaw,
                 getModulePositions());
+        counter++;
+        if (counter % 10 == 0) {
+            LimelightHelpers.SetRobotOrientation("limelight-c", rotationYaw.getDegrees(), 0, 0, 0, 0, 0);
+            LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-c");
+            boolean doRejectUpdate = false;
+            if(Math.abs(m_gyro.getAngularVelocityZWorld().getValueAsDouble()) > 720) // if our angular velocity is greater than 720 degrees per second, ignore vision updates
+            {
+                doRejectUpdate = true;
+            }
+            if(mt2.tagCount == 0)
+            {
+                doRejectUpdate = true;
+            }
+            if(!doRejectUpdate)
+            {
+                m_odometry.setVisionMeasurementStdDevs(VecBuilder.fill(.7,.7,9999999));
+                m_odometry.addVisionMeasurement(
+                    mt2.pose,
+                    mt2.timestampSeconds);
+            }
+        }
 
         // getting velocity vectors from each module
         SwerveModuleState frontLeftState = m_frontLeft.getState();
@@ -377,6 +411,10 @@ public class Drivetrain extends SubsystemBase {
                 frontLeftState, frontRightState, backLeftState, backRightState);
         
         field.setRobotPose(getRoboPose2d());
+    }
+
+    public Field2d getField2d() {
+        return field;
     }
 
     @Override
