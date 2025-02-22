@@ -20,18 +20,21 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Constants.ElevatorConstants;
 //import frc.robot.TyRap24Constants.*;
-import frc.robot.SparkJrConstants.*;
-import frc.robot.Subsystems.Drivetrain;
-import frc.robot.Subsystems.Limelight;
-import frc.robot.Subsystems.RangeSensor;
-import frc.robot.Commands.CenterOnTag;
+import frc.robot.SparkJrConstants.Controller;
+import frc.robot.SparkJrConstants.ID;
 import frc.robot.Commands.Drive;
 import frc.robot.Commands.DriveDistance;
+import frc.robot.Commands.DriveLeftOrRight;
 import frc.robot.Commands.DriveOffset;
 import frc.robot.Commands.DriveRange;
 import frc.robot.Commands.ResetOdoCommand;
 import frc.robot.Commands.StopDrive;
+import frc.robot.Subsystems.Drivetrain;
+import frc.robot.Subsystems.Elevator;
+import frc.robot.Subsystems.Limelight;
+import frc.robot.Subsystems.RangeSensor;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -48,6 +51,7 @@ public class RobotContainer {
     private final Limelight m_Limelight;
     private final RangeSensor m_range;
     private final SendableChooser<String> autoChooser;
+    private final Elevator m_elevator;
 
     private ShuffleboardTab m_competitionTab = Shuffleboard.getTab("Competition Tab");
     private GenericEntry m_xVelEntry = m_competitionTab.add("Chassis X Vel", 0).getEntry();
@@ -66,6 +70,7 @@ public class RobotContainer {
     public RobotContainer() {
         this.m_gyro.getConfigurator().apply(new MountPoseConfigs().withMountPoseYaw(-90));
         this.m_swerve = new Drivetrain(m_gyro);
+        this.m_elevator = new Elevator();
 
         SwerveModuleSB[] swerveModuleTelem = {
                 new SwerveModuleSB("FR", m_swerve.getFrontRightSwerveModule(), m_competitionTab),
@@ -122,6 +127,10 @@ public class RobotContainer {
         Controller.kDriveController.x().onTrue(new DriveDistance(m_swerve,
                 () -> m_Limelight.getzDistanceMeters() - 0.1, 0));
         Controller.kDriveController.leftBumper().onTrue(new DriveRange(m_swerve, () -> 0.5, () -> m_range.getRange(), 90, 0.2));
+        //Controller.kDriveController.y().onTrue(m_elevator.reachGoal(ElevatorConstants.HEIGHT_STAGE[1]));
+        //Controller.kDriveController.y().onFalse(m_elevator.reachGoal(ElevatorConstants.HEIGHT_STAGE[0]));
+        Controller.kDriveController.povLeft().onTrue(new DriveLeftOrRight(m_swerve, m_Limelight, true));
+        Controller.kDriveController.povRight().onTrue(new DriveLeftOrRight(m_swerve, m_Limelight, false));
     }
 
     public Drivetrain getDrivetrain() {
