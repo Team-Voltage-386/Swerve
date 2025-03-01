@@ -43,7 +43,7 @@ import frc.robot.SwerveModule;
 /** Represents a swerve drive style drivetrain. */
 public class Drivetrain extends SubsystemBase {
     
-    public static final double kMaxAngularSpeed = 1.5 * Math.PI; // per second
+    public static final double kMaxAngularSpeed = 1 * Math.PI; // per second // OG: 1.5 * PI
 
     protected final Translation2d m_frontLeftLocation = new Translation2d(
             DriveTrainConstants.kDistanceMiddleToFrontMotor * DriveTrainConstants.kXForward,
@@ -137,7 +137,7 @@ public class Drivetrain extends SubsystemBase {
                         m_backLeft.getPosition(),
                         m_backRight.getPosition()
                 },
-                new Pose2d(1.0, 2.0, new Rotation2d(0.0)));
+                new Pose2d(0.0, 0.0, new Rotation2d(0.0)));
 
         // Load the RobotConfig from the PathPlanner GUI settings
         RobotConfig ppConfig;
@@ -146,36 +146,39 @@ public class Drivetrain extends SubsystemBase {
 
             // Configure AutoBuilder last
             AutoBuilder.configure(
-                this::getRoboPose2d, // Robot pose supplier
-                this::resetOdo, // Method to reset odometry (will be called if your auto has a starting pose)
-                this::getChassisSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
-                this::driveChassisSpeeds, // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds
-                new PPHolonomicDriveController( // HolonomicPathFollowerConfig
-                        new PIDConstants(DriveTrainConstants.drivePID[0], // Translation PID constants
-                            DriveTrainConstants.drivePID[1],
-                            DriveTrainConstants.drivePID[2]), 
-                        new PIDConstants(DriveTrainConstants.turnPID[0], // Rotation PID constants
-                            DriveTrainConstants.turnPID[1],
-                            DriveTrainConstants.turnPID[2]) 
-                ),
-                ppConfig,
-                () -> {
-                    // Boolean supplier that controls when the path will be mirrored for the red
-                    // alliance
-                    // This will flip the path being followed to the red side of the field.
-                    // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
-                    var alliance = DriverStation.getAlliance();
-                    if (alliance.isPresent()) {
-                        return alliance.get() == DriverStation.Alliance.Red;
-                    }
-                    return false;
-                },
-                this // Reference to this subsystem to set requirements
+                    this::getRoboPose2d, // Robot pose supplier
+                    this::resetOdo, // Method to reset odometry (will be called if your auto has a starting pose)
+                    this::getChassisSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+                    this::driveChassisSpeeds, // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds
+                    new PPHolonomicDriveController( // HolonomicPathFollowerConfig
+                            new PIDConstants(DriveTrainConstants.drivePID[0], // Translation PID constants
+                                    DriveTrainConstants.drivePID[1],
+                                    DriveTrainConstants.drivePID[2]),
+                            new PIDConstants(DriveTrainConstants.turnPID[0], // Rotation PID constants
+                                    DriveTrainConstants.turnPID[1],
+                                    DriveTrainConstants.turnPID[2])),
+                    ppConfig,
+                    () -> {
+                        // Boolean supplier that controls when the path will be mirrored for the red
+                        // alliance
+                        // This will flip the path being followed to the red side of the field.
+                        // THE ORIGIN WILL REMAIN ON THE BLUE SIDE
+                        var alliance = DriverStation.getAlliance();
+                        if (alliance.isPresent()) {
+                            return alliance.get() == DriverStation.Alliance.Red;
+                        }
+                        return false;
+                    },
+                    this // Reference to this subsystem to set requirements
             );
         } catch (Exception e) {
             // Handle exception as needed
             e.printStackTrace();
         }
+    }
+
+    public void resetStartingPose(Pose2d newPose) {
+        m_odometry.resetPosition(getGyroYawRotation2d(), getModulePositions(), newPose);
     }
 
     public Pigeon2 getGyro() {
@@ -379,6 +382,7 @@ public class Drivetrain extends SubsystemBase {
                 rotationYaw,
                 getModulePositions());
         counter++;
+        
         if (counter % 10 == 0) {
             LimelightHelpers.SetRobotOrientation("limelight-c", rotationYaw.getDegrees(), 0, 0, 0, 0, 0);
             LimelightHelpers.PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2("limelight-c");
@@ -399,7 +403,7 @@ public class Drivetrain extends SubsystemBase {
                     mt2.timestampSeconds);
             }
         }
-
+        
         // getting velocity vectors from each module
         SwerveModuleState frontLeftState = m_frontLeft.getState();
         SwerveModuleState frontRightState = m_frontRight.getState();

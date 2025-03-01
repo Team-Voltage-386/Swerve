@@ -77,6 +77,7 @@ public class DriveOffset extends Command {
     protected final double threshold = LimelightConstants.driveOffsetRangeMThreshold;
     private int counter;
     protected TrapezoidController trapezoidController;
+    private boolean abort;
 
     // Constructor
     public DriveOffset(Drivetrain dt, Limelight ll, boolean isLeft) {
@@ -101,7 +102,13 @@ public class DriveOffset extends Command {
         }
         // Get minimun velocity from Constants and shuffleboard
         minVel = minVelEntry.getDouble(LimelightConstants.driveOffsetMinVel);
-        desiredPose = getDesiredPose();
+        if (ll.getTimeSinceValid() == 0) {
+                desiredPose = getDesiredPose();
+                abort = false;
+        } else {
+                abort = true;
+        }
+        
 
         // Reset counter
         counter = 0;
@@ -142,6 +149,10 @@ public class DriveOffset extends Command {
 
     @Override
     public void execute() {
+        if (abort) {
+                return;
+        
+        }
         // Update desired pose every so often
         if (ll.getTimeSinceValid() == 0 && (counter % 5 == 0)) {
             desiredPose = getDesiredPose();
@@ -196,6 +207,9 @@ public class DriveOffset extends Command {
     public boolean isFinished() {
         if (rangeM <= threshold && Math.abs(angleError) <= LimelightConstants.driveOffsetAngleErrorRadians) {
             return true;
+        }
+        if(abort){
+                return true;
         }
         return false;
     }

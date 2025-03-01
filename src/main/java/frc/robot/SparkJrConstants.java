@@ -37,8 +37,8 @@ public class SparkJrConstants {
     }
 
     public static class DriveTrainConstants {
-        public static final double kDistanceMiddleToFrontMotor = 0.314325;
-        public static final double kDistanceMiddleToSideMotor = 0.314325;
+        public static final double kDistanceMiddleToFrontMotor = 0.314325; //.16
+        public static final double kDistanceMiddleToSideMotor = 0.314325; // .155
         public static final double kDriveBaseRadius = Math.sqrt( // distance from the middle to the furthest wheel
                 kDistanceMiddleToFrontMotor * kDistanceMiddleToFrontMotor +
                         kDistanceMiddleToSideMotor * kDistanceMiddleToSideMotor);

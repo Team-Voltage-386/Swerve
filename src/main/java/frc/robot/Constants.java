@@ -58,8 +58,8 @@ public class Constants {
         public static final double proportion = 2;
         public static final double threshold = .02;
         // For DriveOffset
-        public static final double driveOffsetXOffset = 0.5;
-        public static final double driveOffsetYOffset = 0.3;
+        public static final double driveOffsetXOffset = 0.6;
+        public static final double driveOffsetYOffset = 0.16;
         public static final double driveOffsetMaxAccMSS = 1.0;
         public static final double driveOffsetMaxDccMSS = 3;
         public static final double driveOffsetMinVel = 0.05;

@@ -4,14 +4,21 @@
 
 package frc.robot;
 
+import java.io.IOException;
+import java.util.Optional;
 import java.util.Vector;
+
+import org.json.simple.parser.ParseException;
 
 import com.ctre.phoenix6.configs.MountPoseConfigs;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
+import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.util.FileVersionException;
 
 import edu.wpi.first.cscore.VideoSource.ConnectionStrategy;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -27,6 +34,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.ElevatorConstants;
@@ -177,6 +185,13 @@ public class RobotContainer {
         autoChooser.addOption("Drive Straight", "Drive Straight");
         autoChooser.addOption("SwerveTestAuto25", "SwerveTestAuto25");
         autoChooser.addOption("StraightForward", "StraightForward");
+        autoChooser.addOption("LimelightTest", "LimelightTest");
+    }
+
+    public void startAutonomous() {
+        SequentialCommandGroup start = new SequentialCommandGroup(getAutonomousCommand(),
+                new DriveOffset(m_swerve, m_Limelight, false));
+        start.schedule();
     }
 
     public Command getAutonomousCommand() {
@@ -184,7 +199,23 @@ public class RobotContainer {
             return Commands.none();
         }
         System.out.println("getAutoCommand building auto for " + autoChooser.getSelected());
-        return AutoBuilder.buildAuto(autoChooser.getSelected());
+        PathPlannerPath path;
+        try {
+            path = PathPlannerPath.fromPathFile(autoChooser.getSelected());
+            Optional<Pose2d> pose = path.getStartingHolonomicPose();
+            if (pose.isPresent()) {
+                m_swerve.resetStartingPose(pose.get());
+                System.out.println(pose.get());
+            } else {
+                System.out.println("Error getting PathPlanner pose");
+            }
+            return AutoBuilder.followPath(path);
+        } catch (FileVersionException | IOException | ParseException e) {
+            // TODO Auto-generated catch block
+            System.err.println("Error loading PathPlanner path");
+            e.printStackTrace();
+        }
+        return new StopDrive(m_swerve);
     }
 
     public void setTeleDefaultCommand() {
