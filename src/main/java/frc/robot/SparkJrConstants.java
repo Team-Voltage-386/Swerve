@@ -82,6 +82,16 @@ public class SparkJrConstants {
                 kManipControllerID);
     }
 
+    public static class PhotonConstants{
+        public static final double kCameraHeightMeters = 0.2;
+        public static final double kCameraPitchDegrees = 30.0;
+        public static final double kTargetHeightMeters = 2.41; // For AprilTag ID 
+        public static final double VISION_TURN_kP = 0.01;
+        public static final double VISION_DES_ANGLE_deg = 0.0;
+        public static final double VISION_STRAFE_kP = 0.5;
+        public static final double VISION_DES_RANGE_m = 1.25;
+    }
+
     public static class Offsets {
         // Ensure that the encoder offsets are between -Pi & Pi
         /**

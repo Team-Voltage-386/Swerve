@@ -48,6 +48,9 @@ import frc.robot.Subsystems.RangeSensor;
 import frc.sim.SimDrivetrain;
 import frc.sim.SimLimelight;
 import frc.sim.SimTarget;
+import frc.robot.Commands.PhotonDrive;
+import org.photonvision.PhotonCamera;
+import org.photonvision.PhotonUtils;
 
 /**
  * This class is where the bulk of the robot should be declared. Since
@@ -64,6 +67,7 @@ public class RobotContainer {
     private final Limelight m_Limelight;
     private final RangeSensor m_range;
     private final SendableChooser<String> autoChooser;
+    private PhotonCamera m_camera;
     //private final Elevator m_elevator;
 
     private ShuffleboardTab m_competitionTab = Shuffleboard.getTab("Competition Tab");
@@ -124,7 +128,7 @@ public class RobotContainer {
         this.m_swerve.setDefaultCommand(this.m_driveCommand);
 
         autoChooser = new SendableChooser<>(); // Default auto will be `Commands.none()'
-
+        m_camera = new PhotonCamera("SparkJrCam");
         configurePathPlanner();
         autoChooser.setDefaultOption("DO NOTHING!", "NO AUTO");
         m_competitionTab.add("Auto Chooser", autoChooser).withSize(2, 1).withPosition(7, 0);
@@ -157,7 +161,7 @@ public class RobotContainer {
 
         Controller.kDriveController.leftBumper().onTrue(m_swerve.setDriveMultCommand(0.5))
                 .onFalse(m_swerve.setDriveMultCommand(1));
-        Controller.kDriveController.a().onTrue(new DriveOffset(m_swerve, m_Limelight, false));
+        Controller.kDriveController.a().onTrue(new PhotonDrive(m_swerve, NetworkTableInstance.getDefault()));
         Controller.kDriveController.b().onTrue(new DriveDistance(m_swerve));
         Controller.kDriveController.x().onTrue(new DriveDistance(m_swerve,
                 () -> m_Limelight.getzDistanceMeters() - 0.1, 0));
